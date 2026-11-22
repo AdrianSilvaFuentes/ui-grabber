@@ -2,12 +2,12 @@
 
 Inspect any element on any web page, the way you would in Figma. UI Grabber is a single script with no dependencies, and it works with any framework or none.
 
-- **Measurements on hover:** padding in green, margin in orange, gap in purple, each with its value in px.
+- **Measurements on hover:** padding in green, margin in orange, gap in purple, each with its value in px, plus the corner radius in pink. The outline follows the element's own corners.
 - **Readable names:** shows `CaseCard › button “View case”` instead of `a.relative.isolate.inline-flex…`. It reads component names from React, Next.js, Vue, Svelte and Angular in development builds, and otherwise falls back to the element's role and text.
 - **Copy what you need:**
   - a short, unique CSS selector;
   - the CSS rules that apply to the element, including Tailwind 4 layers and media queries, with the final value of each `var()`;
-  - its spacing.
+  - its spacing and corner radius.
 - **Made for AI-assisted work:** ⌘C copies the element's name, selector and HTML, ready to paste into your AI chat.
 
 The interface follows the browser language: Portuguese or English.

@@ -1,4 +1,4 @@
-/*! UI Grabber v0.1.0 · MIT License · https://github.com/AdrianSilvaFuentes/ui-grabber */
+/*! UI Grabber v0.1.1 · MIT License · https://github.com/AdrianSilvaFuentes/ui-grabber */
 /* ═══ UI Grabber ═══
    Inspect any element on any page, framework-agnostic, no dependencies.
 
@@ -9,7 +9,8 @@
    ⌘G / Ctrl+G    → turn on / off
    Esc            → close the menu
    Badge          → bottom right corner
-   Measurements   → on hover, like Figma: padding in green, margin in orange, gap in purple
+   Measurements   → on hover, like Figma: padding in green, margin in orange, gap in purple,
+                    corner radius in pink (the outline follows the element's corners)
 
    Language: follows the browser (Portuguese or English). Force it with
    <script src="…/ui-grabber.js" data-lang="en"></script> (or "pt").
@@ -176,7 +177,28 @@
       return v.join(' ');
     }
 
-    // Summary in the label: p (padding), m (margin) and gap, in px.
+    // Corner radius in px, as drawn: % resolved against the box, and each corner capped at half the
+    // shorter side (that is how browsers draw rounded-full / 9999px). Returns '' when there is none.
+    function radiusText(el, cs, unit) {
+      const r = el.getBoundingClientRect();
+      const half = Math.min(r.width, r.height) / 2;
+      const corners = ['borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius'];
+      let pill = true;
+      const v = corners.map(k => {
+        const first = String(cs[k] || '0').trim().split(/\s+/)[0]; // "8px" or "8px 4px" (elliptical): use the first
+        const raw = first.endsWith('%') ? (parseFloat(first) || 0) * r.width / 100 : px(first);
+        if (raw <= half) pill = false;
+        return Math.min(raw, half);
+      });
+      if (v.every(x => x < 0.5)) return '';
+      if (pill) return 'full';
+      const s = v.map(x => `${fmt(x)}${unit}`);
+      if (s.every(x => x === s[0])) return s[0];
+      if (s[0] === s[2] && s[1] === s[3]) return `${s[0]} ${s[1]}`;
+      return s.join(' ');
+    }
+
+    // Summary in the label: p (padding), m (margin), gap and r (corner radius), in px.
     function measureSummary(el) {
       const cs = getComputedStyle(el);
       const parts = [];
@@ -188,6 +210,8 @@
         const rg = px(cs.rowGap), cg = px(cs.columnGap);
         if (rg || cg) parts.push(`<span style="color:#a78bfa">gap ${rg === cg ? fmt(rg) : `${fmt(rg)} ${fmt(cg)}`}</span>`);
       }
+      const rad = radiusText(el, cs, '');
+      if (rad) parts.push(`<span style="color:#f472b6">r ${rad}</span>`);
       return parts.join('<span style="color:#475569"> · </span>');
     }
 
@@ -203,7 +227,9 @@
       } else {
         lines.push(`gap: — ${T.notFlexGrid}`);
       }
-      const SPACING = /^(?:[a-z0-9-]+:)*-?(?:p|px|py|pt|pr|pb|pl|ps|pe|m|mx|my|mt|mr|mb|ml|ms|me|gap|gap-x|gap-y|space-x|space-y)-/;
+      const rad = radiusText(el, cs, 'px');
+      lines.push(`border-radius: ${rad === 'full' ? '9999px; /* full */' : (rad || '0') + ';'}`);
+      const SPACING = /^(?:[a-z0-9-]+:)*-?(?:(?:p|px|py|pt|pr|pb|pl|ps|pe|m|mx|my|mt|mr|mb|ml|ms|me|gap|gap-x|gap-y|space-x|space-y)-|rounded(?:-|$))/;
       const classes = Array.from(el.classList).filter(c => SPACING.test(c));
       if (classes.length) lines.push('', `classes: ${classes.join(' ')}`);
       const r = el.getBoundingClientRect();
@@ -530,6 +556,9 @@
       hl.style.width = r.width + 'px';
       hl.style.height = r.height + 'px';
       hl.style.opacity = '1';
+      // The outline takes the element's own corners, so the radius is visible (3px when it has none).
+      const elRadius = getComputedStyle(el).borderRadius;
+      hl.style.borderRadius = /[1-9]/.test(elRadius) ? elRadius : '3px';
       const summary = measureSummary(el);
       tip.innerHTML = `${escapeHtml(getName(el))}<span style="margin-left:9px;font-weight:400;color:#38bdf8">${Math.round(r.width)}×${Math.round(r.height)}px</span>${summary ? `<span style="margin-left:9px;font-weight:400">${summary}</span>` : ''}`;
       drawMeasures(el);
